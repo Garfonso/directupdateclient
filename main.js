@@ -218,7 +218,7 @@ async function main() {
     if (JSON.stringify(oldIps) !== JSON.stringify(newIps)) {
         const updateDone = await doUpdate(newIps);
         if (updateDone) {
-            await fs.writeFile(storageFile, JSON.stringify(newIps));
+            await fs.writeFile(storageFile, JSON.stringify(newIps, null, 2));
         }
         if (updateDone === 'realUpdate') {
             process.exit(100);
