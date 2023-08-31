@@ -4,7 +4,7 @@ const axios = require('axios').default;
 const os = require('os');
 
 //ENV Parmeters:
-//MYDU_FBIP: set FB IP, default 192.168.1.1
+//MYDU_FBIP: set FB IP, default 192.168.178.1
 //MYDU_IP_STORAGE: set file to store old ips to, default /var/lib/misc/myduIpStore.json
 //MYDU_V6INTERFACE: set interface to get ipv6 from, default enp0s31f6
 //MYDU_V6PREFIX: set public ipv6 prefix, defaults to checking if starts with 2 or 3.
@@ -18,7 +18,7 @@ const DEBUG = true;
 
 async function getIPv4() {
     try {
-        const fbIP =  process.env.MYDU_FBIP || '192.168.1.1';
+        const fbIP =  process.env.MYDU_FBIP || '192.168.178.1';
         const url = 'http://' + fbIP + ':49000/igdupnp/control/WANIPConn1';
         const options = {
             headers: {
