@@ -130,27 +130,27 @@ async function doUpdate(ips) {
             if (res.data.includes('nohost')) {
                 console.error('No hosts specified.'); //should not happpend, because we check that above? -> did protocol change?
                 ips.nohosts = true;
-                return true;
+                return 'failure';
             }
             if (res.data.includes('badauth')) {
                 console.error('Could not login -> wrong credentials.');
                 ips.badauth = true;
-                return true;
+                return 'failure';
             }
             if (res.data.includes('badagent')) {
                 console.error('noip blocked my software.. AHRG... :-(');
                 ips.badagent = true;
-                return true;
+                return 'failure';
             }
             if (res.data.includes('abuse')) {
                 console.error('Blocked due to abuse...??? AHRG... :-(');
                 ips.abuse = true;
-                return true;
+                return 'failure';
             }
             if (res.data.includes('911') || res.status >= 500) {
                 console.error('Error on noip site. Try again in 30 Minutes... hm.');
                 ips.waitFor30Minutes = true;
-                return true;
+                return 'failure';
             }
         }
     }
@@ -224,6 +224,9 @@ async function main() {
         }
         if (updateDone === 'realUpdate') {
             process.exit(100);
+        }
+        if (updateDone === 'failure') {
+            process.exit(50); // trigger mail..
         }
     } else {
         if (DEBUG) {
