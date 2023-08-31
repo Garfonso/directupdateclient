@@ -101,33 +101,34 @@ async function doUpdate(ips) {
             console.log('Result:', res.data, res.status);
         }
 
+        //check for errors -> if something that bad did happen, store in ips file and block further updates until resolved.
+        if (res.data.includes('nohost')) {
+            console.error('No hosts specified.'); //should not happpend, because we check that above? -> did protocol change?
+            ips.nohosts = true;
+            return true;
+        }
+        if (res.data.includes('badauth')) {
+            console.error('Could not login -> wrong credentials.');
+            ips.badauth = true;
+            return true;
+        }
+        if (res.data.includes('badagent')) {
+            console.error('noip blocked my software.. AHRG... :-(');
+            ips.badagent = true;
+            return true;
+        }
+        if (res.data.includes('abuse')) {
+            console.error('Blocked due to abuse...??? AHRG... :-(');
+            ips.abuse = true;
+            return true;
+        }
+        if (res.data.includes('911')) {
+            console.error('Error on noip site. Try again in 30 Minutes... hm.');
+            ips.waitFor30Minutes = true;
+            return true;
+        }
+
         if (res.status === 200) {
-            //check for errors -> if something that bad did happen, store in ips file and block further updates until resolved.
-            if (res.data.includes('nohost')) {
-                console.error('No hosts specified.'); //should not happpend, because we check that above? -> did protocol change?
-                ips.nohosts = true;
-                return true;
-            }
-            if (res.data.includes('badauth')) {
-                console.error('Could not login -> wrong credentials.');
-                ips.badauth = true;
-                return true;
-            }
-            if (res.data.includes('badagent')) {
-                console.error('noip blocked my software.. AHRG... :-(');
-                ips.badagent = true;
-                return true;
-            }
-            if (res.data.includes('abuse')) {
-                console.error('Blocked due to abuse...??? AHRG... :-(');
-                ips.abuse = true;
-                return true;
-            }
-            if (res.data.includes('911')) {
-                console.error('Error on noip site. Try again in 30 Minutes... hm.');
-                ips.waitFor30Minutes = true;
-                return true;
-            }
             const answers = res.data;
             const hosts = process.env.MYDU_HOSTNAMES.split(',');
             let index = 0;
