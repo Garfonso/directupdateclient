@@ -1,0 +1,9 @@
+[Unit]
+Description=my direct update client to update noip hostnames.
+
+[Service]
+Type=simple
+EnvironmentFile=-/opt/directupdateclient/myduEnvironment.conf
+ExecStart=/usr/bin/node /opt/directupdateclient/directupdateclient/main.js
+RemainAfterExit=false
+OnFailure=unit-status-mail@%n.service

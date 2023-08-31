@@ -1,0 +1,11 @@
+[Unit]
+Description=my direct update client to update noip hostnames.
+After=network-online.target
+Wants=network-online.target
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=5m
+
+[Install]
+WantedBy=multi-user.target
