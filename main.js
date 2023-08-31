@@ -29,7 +29,7 @@ async function getIPv4() {
         const data = '<?xml version=\'1.0\' encoding=\'utf-8\'?> <s:Envelope s:encodingStyle=\'http://schemas.xmlsoap.org/soap/encoding/\' xmlns:s=\'http://schemas.xmlsoap.org/soap/envelope/\'> <s:Body> <u:GetExternalIPAddress xmlns:u=\'urn:schemas-upnp-org:service:WANIPConnection:1\' /> </s:Body> </s:Envelope>';
         const res = await axios.post(url, data, options);
         if (DEBUG) {
-            console.log('IPv4 request:', res);
+            console.log('IPv4 request:', res.data, res.status);
         }
         if (res.status === 200) {
             //ok, extract ip:
@@ -98,7 +98,7 @@ async function doUpdate(ips) {
         }
         const res = await axios.get(url, options);
         if (DEBUG) {
-            console.log('Result:', res);
+            console.log('Result:', res.data, res.status);
         }
 
         if (res.status === 200) {
