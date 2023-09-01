@@ -14,7 +14,7 @@ const os = require('os');
 //MYDU_CREDFILE: set file to read credentials from, defaults to credentias.json
 //MYDU_HOSTNAMES: hostnames to update, seperated by ,.
 
-const DEBUG = true;
+const DEBUG = process.env.MYDU_DEBUG || false;
 
 async function getIPv4() {
     try {
