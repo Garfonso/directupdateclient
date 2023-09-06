@@ -153,6 +153,10 @@ async function doUpdate(ips) {
                 return 'failure';
             }
         }
+        if (e.code === 'ENOTFOUND') {
+            console.log('Network error. Let\'s wait until it is up again.');
+            return 'network';
+        }
     }
     return false;
 }
@@ -227,6 +231,10 @@ async function main() {
         }
         if (updateDone === 'failure') {
             process.exit(50); // trigger mail..
+        }
+        if (updateDone === 'network') {
+            //ignore network errors for now.
+            return;
         }
     } else {
         if (DEBUG) {
