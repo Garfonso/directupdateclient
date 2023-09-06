@@ -89,13 +89,13 @@ async function doUpdate(ips) {
             console.error('Please set Hostnames in MYDU_HOSTNAMES environment variable.');
             return false;
         }
-        const url = `https://dynupdate.no-ip.com/nic/update?hostname=${process.env.MYDU_HOSTNAMES}&myip=${ips.v4}${ips.v6 ? ',' + ips.v6 : ''}`
+        const url = `https://dynupdate.no-ip.com/nic/update?hostname=${process.env.MYDU_HOSTNAMES}&myip=${ips.v4}${ips.v6 ? ',' + ips.v6 : ''}`;
         const options = {
             auth: credentials,
             headers: {
                 'User-Agent': 'Mobo DirectUpdate Client/Linux-0.0.1 garfonso@mobo.info'
             }
-        }
+        };
         const res = await axios.get(url, options);
         if (DEBUG) {
             console.log('Result:', res.data, res.status);
@@ -208,7 +208,7 @@ async function main() {
     const newIps = {
         v4: await getIPv4(),
         v6: await getIPv6()
-    }
+    };
 
     if (DEBUG) {
         console.log('Found ips:', newIps, 'storedIps:', oldIps);
