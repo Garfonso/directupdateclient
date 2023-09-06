@@ -21,3 +21,11 @@ Following parameters can be set:
 | MYDU_CREDFILE        | set file to read credentials from                                            | credentias.json in working dir.                          |
 | MYDU_HOSTNAMES       | hostnames to update, seperated by ,.                                         | no default. Need to set                                  |
 | MYDU_DEBUG           | enable debug logging (to activate set to anything that will be truthy in JS) | default off                                              |
+
+## Changelog
+<!--
+  Placeholder for the next version (at the beginning of the line):
+  ### **WORK IN PROGRESS**
+-->
+### **WORK IN PROGRESS**
+* ignore not-found network error for now.
