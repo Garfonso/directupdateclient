@@ -57,19 +57,21 @@ async function getIPv6() {
     if (DEBUG) {
         console.log('Result from os:', inf);
     }
-    for (const addr of inf) {
-        if (addr.family === 'IPv6') {
-            if (process.env.MYDU_V6PREFIX && addr.address.startsWith(process.env.MYDU_V6PREFIX)) {
-                if (DEBUG) {
-                    console.log('Found global v6 address:', addr);
+    if (inf) {
+        for (const addr of inf) {
+            if (addr.family === 'IPv6') {
+                if (process.env.MYDU_V6PREFIX && addr.address.startsWith(process.env.MYDU_V6PREFIX)) {
+                    if (DEBUG) {
+                        console.log('Found global v6 address:', addr);
+                    }
+                    return addr.address;
                 }
-                return addr.address;
-            }
-            if (addr.address.startsWith('2') || addr.address.startsWith('3')) {
-                if (DEBUG) {
-                    console.log('Found global v6 address:', addr);
+                if (addr.address.startsWith('2') || addr.address.startsWith('3')) {
+                    if (DEBUG) {
+                        console.log('Found global v6 address:', addr);
+                    }
+                    return addr.address;
                 }
-                return addr.address;
             }
         }
     }
