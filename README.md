@@ -27,7 +27,7 @@ Following parameters can be set:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 1.0.2 (2023-09-27)
 * fix possible crash if interface does not have addresses (yet).
 
 ### 1.0.1 (2023-09-06)
