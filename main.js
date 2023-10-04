@@ -155,7 +155,7 @@ async function doUpdate(ips) {
                 return 'failure';
             }
         }
-        if (e.code === 'ENOTFOUND') {
+        if (e.code === 'ENOTFOUND' || e.code === 'EAI_AGAIN') {
             console.log('Network error. Let\'s wait until it is up again.');
             return 'network';
         }
