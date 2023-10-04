@@ -45,7 +45,7 @@ async function getIPv4() {
             console.log('Could not get ipv4:', res.status, res.statusText, res.data);
         }
     } catch (e) {
-        console.log('Could not ipv4:', e);
+        console.log('Could not get ipv4:', e);
     }
     return '';
 }
