@@ -217,7 +217,7 @@ async function main() {
     }
 
     //check if ips did change - kind of a hack
-    if (JSON.stringify(oldIps) !== JSON.stringify(newIps)) {
+    if (JSON.stringify(oldIps) !== JSON.stringify(newIps) && (newIps.v4 || newIps.v6)) {
         const updateDone = await doUpdate(newIps);
         if (updateDone) {
             if (DEBUG) {
@@ -240,7 +240,7 @@ async function main() {
         }
     } else {
         if (DEBUG) {
-            console.log('No update needed.');
+            console.log('No update needed or possible because no ip: ', newIps);
         }
     }
 }
