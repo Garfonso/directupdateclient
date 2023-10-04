@@ -27,7 +27,7 @@ Following parameters can be set:
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 1.0.3 (2023-10-04)
 * fix another possible issue with no adress from fritzbox
 * only update IP if we have at least one valid ip
 * ignore another Network error on update and try again later.
