@@ -20,13 +20,31 @@ Following parameters can be set:
 | MYDU_PASSWORD        | no ip password                                                               |                                                          |
 | MYDU_CREDFILE        | set file to read credentials from                                            | credentias.json in working dir.                          |
 | MYDU_HOSTNAMES       | hostnames to update, seperated by ,.                                         | no default. Need to set                                  |
+| MYDU_FORCE_UPDATE_DAYS | force an update after that many days without one. Set to 0 to disable.     | 28                                                       |
 | MYDU_DEBUG           | enable debug logging (to activate set to anything that will be truthy in JS) | default off                                              |
+
+## Forced updates
+
+Some dyndns services delete hostnames that did not receive an update for a while (usually a month).
+To avoid that, an update is sent even if the ip did not change, if the last successful update is
+more than `MYDU_FORCE_UPDATE_DAYS` days ago (28 by default, i.e. safely below a month).
+
+The time of the last successful update is stored as `lastUpdate` in the ip storage file
+(see `MYDU_IP_STORAGE`). If that file was written by an older version and does not contain a
+timestamp yet, the modification time of the file is used instead.
+
+A forced update usually answers with `nochg` and therefore exits with code 0, i.e. it does not
+trigger the mail that a real ip change triggers.
 
 ## Changelog
 <!--
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* force an update every 28 days, even if the ip did not change, so services do not delete the hosts (configurable via MYDU_FORCE_UPDATE_DAYS)
+* retry the update after a `911` error from the service, even if the ip did not change in the meantime
+* do not store the new ips if the update could not be sent due to a network error
 ### 1.0.3 (2023-10-04)
 * fix another possible issue with no adress from fritzbox
 * only update IP if we have at least one valid ip

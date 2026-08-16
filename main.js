@@ -13,8 +13,27 @@ const os = require('os');
 // or
 //MYDU_CREDFILE: set file to read credentials from, defaults to credentias.json
 //MYDU_HOSTNAMES: hostnames to update, seperated by ,.
+//MYDU_FORCE_UPDATE_DAYS: force an update after that many days without one, default 28. Set to 0 to disable.
 
 const DEBUG = process.env.MYDU_DEBUG || false;
+
+const DEFAULT_FORCE_UPDATE_DAYS = 28;
+
+//some dyndns services delete hosts that were not updated for a while (usually a month),
+//so we need to send an update from time to time, even if the ip did not change.
+function getForceUpdateInterval() {
+    let days = DEFAULT_FORCE_UPDATE_DAYS;
+    const configured = process.env.MYDU_FORCE_UPDATE_DAYS;
+    if (configured !== undefined && configured !== '') {
+        const parsed = Number(configured);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            console.log(`Invalid MYDU_FORCE_UPDATE_DAYS: ${configured} -> using default of ${days} days.`);
+        } else {
+            days = parsed;
+        }
+    }
+    return days * 24 * 60 * 60 * 1000; //0 -> forced updates are disabled.
+}
 
 async function getIPv4() {
     try {
@@ -166,11 +185,29 @@ async function doUpdate(ips) {
 async function main() {
     const storageFile = process.env.MYDU_IP_STORAGE || '/var/lib/misc/myduIpStore.json';
     const oldIps = {v4: '', v6: ''};
+    let lastUpdate = 0; //0 -> unknown, i.e. we never stored a successful update.
+    let retryAfterError = false;
     try {
         const contents = await fs.readFile(storageFile, 'utf-8');
         const obj = JSON.parse(contents);
         oldIps.v4 = obj.v4;
         oldIps.v6 = obj.v6;
+
+        if (obj.lastUpdate) {
+            const parsed = Date.parse(obj.lastUpdate);
+            if (!Number.isNaN(parsed)) {
+                lastUpdate = parsed;
+            }
+        }
+        if (!lastUpdate) {
+            //storage file was written by an older version -> use its modification time as a starting point.
+            try {
+                const stats = await fs.stat(storageFile);
+                lastUpdate = stats.mtime.getTime();
+            } catch (e) {
+                console.log('Could not read modification time of storage file.', e);
+            }
+        }
 
         if (obj.nohosts) {
             console.error('Did you correct the nohosts problem? - if so, delete the ip storage at ' + storageFile);
@@ -199,6 +236,8 @@ async function main() {
                 console.error(`No ip hat issue ${Math.floor(timePassed / 1000 / 60)} minutes ago. Wait some more.`);
                 return;
             }
+            //the ips were already stored during the failed attempt, so retry even if they did not change.
+            retryAfterError = true;
         }
 
     } catch (e) {
@@ -217,13 +256,37 @@ async function main() {
     }
 
     //check if ips did change - kind of a hack
-    if (JSON.stringify(oldIps) !== JSON.stringify(newIps) && (newIps.v4 || newIps.v6)) {
+    const ipsChanged = JSON.stringify(oldIps) !== JSON.stringify(newIps);
+
+    //force an update once in a while, so the hosts do not get deleted by the service.
+    const forceUpdateInterval = getForceUpdateInterval();
+    const timeSinceLastUpdate = lastUpdate ? Date.now() - lastUpdate : Number.POSITIVE_INFINITY;
+    const forcedUpdate = forceUpdateInterval > 0 && timeSinceLastUpdate >= forceUpdateInterval;
+    if (forcedUpdate && !ipsChanged) {
+        const days = timeSinceLastUpdate === Number.POSITIVE_INFINITY ? 'unknown' : Math.floor(timeSinceLastUpdate / 1000 / 60 / 60 / 24);
+        console.log(`Last update was ${days} days ago -> forcing an update, even though the ips did not change.`);
+    }
+
+    if ((ipsChanged || forcedUpdate || retryAfterError) && (newIps.v4 || newIps.v6)) {
         const updateDone = await doUpdate(newIps);
+        if (updateDone === 'network') {
+            //update never reached the service -> do not store anything, so we retry with the same data later.
+            return;
+        }
         if (updateDone) {
-            if (DEBUG) {
-                console.log('Storing', newIps, 'to', storageFile);
+            const toStore = Object.assign({}, newIps);
+            if (updateDone === 'failure') {
+                //nothing was updated -> keep the old timestamp, so the forced update is not postponed by an error.
+                if (lastUpdate) {
+                    toStore.lastUpdate = new Date(lastUpdate).toISOString();
+                }
+            } else {
+                toStore.lastUpdate = new Date().toISOString();
             }
-            await fs.writeFile(storageFile, JSON.stringify(newIps, null, 2));
+            if (DEBUG) {
+                console.log('Storing', toStore, 'to', storageFile);
+            }
+            await fs.writeFile(storageFile, JSON.stringify(toStore, null, 2));
         } else {
             console.log('No update done... hm');
             process.exit(50);
@@ -233,10 +296,6 @@ async function main() {
         }
         if (updateDone === 'failure') {
             process.exit(50); // trigger mail..
-        }
-        if (updateDone === 'network') {
-            //ignore network errors for now.
-            return;
         }
     } else {
         if (DEBUG) {
