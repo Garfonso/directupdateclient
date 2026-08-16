@@ -1,6 +1,5 @@
 //update no-ip, if changed.
 const fs = require('fs').promises;
-const axios = require('axios').default;
 const os = require('os');
 
 //ENV Parmeters:
@@ -39,20 +38,22 @@ async function getIPv4() {
     try {
         const fbIP =  process.env.MYDU_FBIP || '192.168.178.1';
         const url = 'http://' + fbIP + ':49000/igdupnp/control/WANIPConn1';
+        const data = '<?xml version=\'1.0\' encoding=\'utf-8\'?> <s:Envelope s:encodingStyle=\'http://schemas.xmlsoap.org/soap/encoding/\' xmlns:s=\'http://schemas.xmlsoap.org/soap/envelope/\'> <s:Body> <u:GetExternalIPAddress xmlns:u=\'urn:schemas-upnp-org:service:WANIPConnection:1\' /> </s:Body> </s:Envelope>';
         const options = {
+            method: 'POST',
             headers: {
                 'Content-Type': 'text/xml; charset="utf-8"',
                 'SoapAction': 'urn:schemas-upnp-org:service:WANIPConnection:1#GetExternalIPAddress'
-            }
+            },
+            body: data
         };
-        const data = '<?xml version=\'1.0\' encoding=\'utf-8\'?> <s:Envelope s:encodingStyle=\'http://schemas.xmlsoap.org/soap/encoding/\' xmlns:s=\'http://schemas.xmlsoap.org/soap/envelope/\'> <s:Body> <u:GetExternalIPAddress xmlns:u=\'urn:schemas-upnp-org:service:WANIPConnection:1\' /> </s:Body> </s:Envelope>';
-        const res = await axios.post(url, data, options);
+        const res = await fetch(url, options);
+        const ipStr = await res.text();
         if (DEBUG) {
-            console.log('IPv4 request:', res.data, res.status);
+            console.log('IPv4 request:', ipStr, res.status);
         }
         if (res.status === 200) {
             //ok, extract ip:
-            const ipStr = res.data;
             const start = ipStr.indexOf('<NewExternalIPAddress>') + '<NewExternalIPAddress>'.length;
             const end = ipStr.indexOf('</NewExternalIPAddress>');
             const ipv4 = ipStr.substring(start, end);
@@ -61,7 +62,7 @@ async function getIPv4() {
             }
             return ipv4;
         } else {
-            console.log('Could not get ipv4:', res.status, res.statusText, res.data);
+            console.log('Could not get ipv4:', res.status, res.statusText, ipStr);
         }
     } catch (e) {
         console.log('Could not get ipv4:', e);
@@ -97,6 +98,37 @@ async function getIPv6() {
     console.log('No ipv6 found...');
 }
 
+//the service reports errors as plain text, so we need to look at the body of the response.
+function handleErrorResponse(ips, status, body) {
+    //check for errors -> if something that bad did happen, store in ips file and block further updates until resolved.
+    if (body.includes('nohost')) {
+        console.error('No hosts specified.'); //should not happpend, because we check that above? -> did protocol change?
+        ips.nohosts = true;
+        return 'failure';
+    }
+    if (body.includes('badauth')) {
+        console.error('Could not login -> wrong credentials.');
+        ips.badauth = true;
+        return 'failure';
+    }
+    if (body.includes('badagent')) {
+        console.error('noip blocked my software.. AHRG... :-(');
+        ips.badagent = true;
+        return 'failure';
+    }
+    if (body.includes('abuse')) {
+        console.error('Blocked due to abuse...??? AHRG... :-(');
+        ips.abuse = true;
+        return 'failure';
+    }
+    if (body.includes('911') || status >= 500) {
+        console.error('Error on noip site. Try again in 30 Minutes... hm.');
+        ips.waitFor30Minutes = true;
+        return 'failure';
+    }
+    return false;
+}
+
 async function doUpdate(ips) {
     try {
         let credentials = { username: '', password: ''};
@@ -112,17 +144,35 @@ async function doUpdate(ips) {
         }
         const url = `https://dynupdate.no-ip.com/nic/update?hostname=${process.env.MYDU_HOSTNAMES}&myip=${ips.v4}${ips.v6 ? ',' + ips.v6 : ''}`;
         const options = {
-            auth: credentials,
             headers: {
+                'Authorization': 'Basic ' + Buffer.from(`${credentials.username}:${credentials.password}`).toString('base64'),
                 'User-Agent': 'Mobo DirectUpdate Client/Linux-0.0.1 garfonso@mobo.info'
             }
         };
-        const res = await axios.get(url, options);
+        let res;
+        let answers;
+        try {
+            res = await fetch(url, options);
+            answers = await res.text();
+        } catch (e) {
+            //fetch only rejects if the request could not be sent (or the answer not be read) at all.
+            console.log('Error during update:', e);
+            const code = (e.cause && e.cause.code) || e.code;
+            if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+                console.log('Network error. Let\'s wait until it is up again.');
+                return 'network';
+            }
+            return false;
+        }
         if (DEBUG) {
-            console.log('Result:', res.data, res.status);
+            console.log('Result:', answers, res.status);
+        }
+        //unlike axios, fetch does not reject on error codes -> check ourselves.
+        if (!res.ok) {
+            console.log('Error during update:', res.status, res.statusText, answers);
+            return handleErrorResponse(ips, res.status, answers);
         }
 
-        const answers = res.data;
         const hosts = process.env.MYDU_HOSTNAMES.split(',');
         let index = 0;
         //process line for line
@@ -144,40 +194,8 @@ async function doUpdate(ips) {
         }
         return true;
     } catch (e) {
+        //e.g. the credentials file could not be read.
         console.log('Error during update:', e);
-        if (e.response) {
-            const res = e.response;
-            //check for errors -> if something that bad did happen, store in ips file and block further updates until resolved.
-            if (res.data.includes('nohost')) {
-                console.error('No hosts specified.'); //should not happpend, because we check that above? -> did protocol change?
-                ips.nohosts = true;
-                return 'failure';
-            }
-            if (res.data.includes('badauth')) {
-                console.error('Could not login -> wrong credentials.');
-                ips.badauth = true;
-                return 'failure';
-            }
-            if (res.data.includes('badagent')) {
-                console.error('noip blocked my software.. AHRG... :-(');
-                ips.badagent = true;
-                return 'failure';
-            }
-            if (res.data.includes('abuse')) {
-                console.error('Blocked due to abuse...??? AHRG... :-(');
-                ips.abuse = true;
-                return 'failure';
-            }
-            if (res.data.includes('911') || res.status >= 500) {
-                console.error('Error on noip site. Try again in 30 Minutes... hm.');
-                ips.waitFor30Minutes = true;
-                return 'failure';
-            }
-        }
-        if (e.code === 'ENOTFOUND' || e.code === 'EAI_AGAIN') {
-            console.log('Network error. Let\'s wait until it is up again.');
-            return 'network';
-        }
     }
     return false;
 }
