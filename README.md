@@ -43,7 +43,7 @@ trigger the mail that a real ip change triggers.
   Placeholder for the next version (at the beginning of the line):
   ### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 1.1.0 (2026-08-17)
 * force an update every 28 days, even if the ip did not change, so services do not delete the hosts (configurable via MYDU_FORCE_UPDATE_DAYS)
 * retry the update after a `911` error from the service, even if the ip did not change in the meantime
 * do not store the new ips if the update could not be sent due to a network error
