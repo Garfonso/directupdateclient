@@ -8,6 +8,8 @@ IPv6 is retrieved from local interface.
 Use service files to check for update every 5 minutes.
 Use environment file to configure.
 
+Needs node.js 18 or newer (uses the built in fetch API) and has no runtime dependencies.
+
 Following parameters can be set:
 
 | Environment variable | setting                                                                      | default                                                  |
@@ -45,6 +47,8 @@ trigger the mail that a real ip change triggers.
 * force an update every 28 days, even if the ip did not change, so services do not delete the hosts (configurable via MYDU_FORCE_UPDATE_DAYS)
 * retry the update after a `911` error from the service, even if the ip did not change in the meantime
 * do not store the new ips if the update could not be sent due to a network error
+* use the built in fetch API instead of axios -> no runtime dependencies anymore, but node.js 18 or newer is required
+* update dev dependencies (eslint 10 with flat config, release-script 5, @types/node 26)
 ### 1.0.3 (2023-10-04)
 * fix another possible issue with no adress from fritzbox
 * only update IP if we have at least one valid ip
