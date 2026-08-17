@@ -49,6 +49,7 @@ trigger the mail that a real ip change triggers.
 * do not store the new ips if the update could not be sent due to a network error
 * use the built in fetch API instead of axios -> no runtime dependencies anymore, but node.js 18 or newer is required
 * update dev dependencies (eslint 10 with flat config, release-script 5, @types/node 26)
+
 ### 1.0.3 (2023-10-04)
 * fix another possible issue with no adress from fritzbox
 * only update IP if we have at least one valid ip
